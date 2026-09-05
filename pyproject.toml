@@ -1,0 +1,112 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "trtship"
+version = "0.0.1.dev0"
+description = "Model-agnostic PyTorch to TensorRT deployment: export, calibrate, build, benchmark, serve."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10,<3.13"
+authors = [{ name = "Arnav" }]
+keywords = ["tensorrt", "pytorch", "onnx", "triton", "inference", "quantization"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Deliberately minimal. Everything here installs on macOS/arm64 so the CPU-safe
+# core (see docs/architecture.md) is developable without a GPU. CUDA-only
+# packages live in the [gpu] extra and are never imported at package import time.
+dependencies = [
+  "torch>=2.4",
+  "typer>=0.12",
+  "pydantic>=2.7",
+  "pyyaml>=6.0",
+  "rich>=13.0",
+]
+
+[project.optional-dependencies]
+# Export + numerical verification. onnxruntime (CPU EP) works on arm64 macOS.
+export = [
+  "onnx>=1.16",
+  "onnxruntime>=1.18",
+]
+# Requires CUDA. Not installable on macOS; guarded by env.py at runtime.
+gpu = [
+  "tensorrt>=10.0,<11.0",
+  "onnxruntime-gpu>=1.18",
+  "pynvml>=11.5",
+]
+triton = [
+  "tritonclient[grpc,http]>=2.45",
+]
+report = [
+  "plotly>=5.20",
+]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.5",
+  "black>=24.0",
+  "mypy>=1.10",
+  "pre-commit>=3.7",
+  "types-PyYAML",
+]
+
+[project.scripts]
+trtship = "trtship.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/namesarnav/trtship"
+Issues = "https://github.com/namesarnav/trtship/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trtship"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
+ignore = ["E501"]  # black owns line length
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["trtship"]
+mypy_path = "src"
+strict = true
+warn_unreachable = true
+# Third-party packages without stubs. tensorrt in particular ships none.
+[[tool.mypy.overrides]]
+module = ["tensorrt.*", "onnxruntime.*", "onnx.*", "pynvml.*", "plotly.*", "tritonclient.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "gpu: requires a CUDA GPU and TensorRT (skipped on CPU-only machines)",
+  "docker: requires a working Docker daemon",
+  "slow: takes more than ~30s",
+]
+
+[tool.coverage.run]
+source = ["src/trtship"]
+omit = ["src/trtship/cli.py"]  # CLI glue, excluded per NFR-5.2
+
+[tool.coverage.report]
+fail_under = 75
+show_missing = true

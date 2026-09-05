@@ -1,0 +1,29 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+/build/
+/dist/
+.venv/
+venv/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# trtship artifacts — engines are large, machine-specific, and rebuildable
+*.engine
+*.plan
+*.onnx
+.trtship_cache/
+runs/
+outputs/
+
+# Two-machine sync (see scripts/gpu_batch.py)
+.gpu_sync/
+
+.DS_Store
+.idea/
+.vscode/
+site/
