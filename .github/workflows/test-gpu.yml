@@ -1,0 +1,26 @@
+name: test-gpu
+
+# Runs on a self-hosted runner (the GPU laptop). Deliberately NOT per-push:
+# the machine is not always on, and a red X from an offline runner trains you
+# to ignore CI. Manual dispatch plus a nightly attempt.
+#
+# Register the runner with the labels: [self-hosted, gpu, tensorrt]
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"
+
+jobs:
+  test:
+    runs-on: [self-hosted, gpu, tensorrt]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Environment preflight
+        run: |
+          nvidia-smi
+          python -m trtship.cli doctor
+      - name: Install
+        run: pip install -e ".[export,gpu,triton,report,dev]"
+      - name: Integration tests
+        run: pytest tests/integration -v -m gpu
